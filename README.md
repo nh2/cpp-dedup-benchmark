@@ -29,6 +29,22 @@ vector<T>  stable_uniquify(vector<T> & v);
 Note vector iterators are usually simply 64-bit indices.
 
 
+## Memory usage
+
+Measured:
+
+```
+what                      Bytes per element    Notes
+
+Input data type (Point)      11                = 3 double + 3 char
+
+stable_unique_iterators      12                = 1.5 size_t due to std::stable_sort (e.g. merge sort buffer)
+unstable_unique_iterators     8                = 1 size_t
+unordered_set                56
+flat_hash_set                32
+```
+
+
 ## Running the benchmark
 
 ```

@@ -31,6 +31,40 @@ namespace iterator_sorting {
 //
 // Complexity:
 // Given `N` as `last - first`:
+// * Same as `std::sort` for N elements
+template <
+  typename It,
+  typename Compare = std::less<>,
+  typename EqualPred = std::equal_to<>,
+  typename Allocator = std::allocator<It>
+>
+std::vector<It>
+unstable_unique_iterators(
+  const It begin,
+  const It end,
+  Compare comp = Compare{},
+  EqualPred equalPred = EqualPred{}
+)
+{
+  // Create vector of iterators.
+  std::vector<It, Allocator> v;
+  v.reserve(static_cast<size_t>(std::distance(begin, end)));
+  for (It it = begin; it != end; ++it)
+    v.push_back(it);
+
+  // Sort vector of iterators so that their pointed-to values are in order.
+  std::sort(v.begin(), v.end(), [&comp](const It & a, const It &b ){ return comp(*a, *b); });
+  // Remove from vector of iterators subsequent ones that point to equal values.
+  v.erase(std::unique(v.begin(), v.end(), [&equalPred](const It & a, const It & b) { return equalPred(*a, *b); }), v.end());
+  // Sort vector of iterators back. Its pointed-to values are now non-duplicates.
+  std::sort(v.begin(), v.end());
+  return v;
+}
+
+// Returns an array of iterators that would stable-sort the pointed-to values.
+//
+// Complexity:
+// Given `N` as `last - first`:
 // * Same as `std::stable_sort` for N elements
 template <
   typename It,

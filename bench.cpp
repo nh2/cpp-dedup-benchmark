@@ -37,6 +37,7 @@ benchmarkUniquify(size_t n)
 
   double duration_stable_unique_iterators;
   double duration_stable_unique_iterators_comparing_whole_point;
+  double duration_unstable_unique_iterators;
   double duration_unordered_set;
 #ifdef HAVE_DEPENDENCY_PHMAP
   double duration_flat_hash_set;
@@ -66,6 +67,20 @@ benchmarkUniquify(size_t n)
     const auto t1 = chrono::steady_clock::now();
     duration_stable_unique_iterators_comparing_whole_point = chrono::duration<double>(t1 - t0).count();
     cout << "stable_unique_iterators_comparing_whole_point done, got " << numUniques << " uniques" << endl;
+  }
+
+  // unstable_unique_iterators()
+  {
+    vector<Point3D>  & v = inputCloud; // copy
+    cout << "unstable_unique_iterators..." << endl;
+    const auto t0 = chrono::steady_clock::now();
+    // Only compare point positions.
+    const auto posLess = [](const Point3D & a, const Point3D & b){ return get<0>(a) < get<0>(b); };
+    const auto posEqual = [](const Point3D & a, const Point3D & b){ return get<0>(a) == get<0>(b); };
+    const size_t numUniques = iterator_sorting::unstable_unique_iterators(v.begin(), v.end(), posLess, posEqual).size();
+    const auto t1 = chrono::steady_clock::now();
+    duration_unstable_unique_iterators = chrono::duration<double>(t1 - t0).count();
+    cout << "unstable_unique_iterators done, got " << numUniques << " uniques" << endl;
   }
 
   // std::unordered_set
@@ -119,6 +134,7 @@ benchmarkUniquify(size_t n)
   cout << fixed << setprecision(2);
   cout << "  stable_unique_iterators:                         " << setw(7) << duration_stable_unique_iterators << " s" << endl;
   cout << "  stable_unique_iterators (comparing whole point): " << setw(7) << duration_stable_unique_iterators_comparing_whole_point << " s (" << (duration_stable_unique_iterators_comparing_whole_point / ref) << " x)" << endl;
+  cout << "  unstable_unique_iterators:                       " << setw(7) << duration_unstable_unique_iterators << " s (" << (duration_unstable_unique_iterators / ref) << " x)" << endl;
   cout << "  unordered_set:                                   " << setw(7) << duration_unordered_set << " s (" << (duration_unordered_set / ref) << " x)" << endl;
 #ifdef HAVE_DEPENDENCY_PHMAP
   cout << "  flat_hash_set:                                   " << setw(7) << duration_flat_hash_set << " s (" << (duration_flat_hash_set / ref) << " x)" << endl;

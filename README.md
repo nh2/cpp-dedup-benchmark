@@ -20,6 +20,7 @@ But if the number of distinct elements small enough to fit into a CPU cache, usi
 [`iterator_sorting.h`](./iterator_sorting.h) provides:
 
 ```c++
+vector<It> unstable_unique_iterators(It begin, It end);
 vector<It> stable_unique_iterators(It begin, It end);
        It  stable_uniquify(It begin, It end);
 vector<T>  stable_uniquify(vector<T> & v);
@@ -63,6 +64,25 @@ On `Intel Core i7-7500U`, single-run benchmark (we only care about rough numbers
 ```
 
 ![results graph](graph.svg)
+
+Performance vs non-stable algorithms:
+
+```
+           n   |- speedup factor over -|   notes
+               unstable_unique_iterators
+
+        1000   0.6
+        3162   1.2
+       10000   1.0
+       31623   1.1
+      100000   1.2
+      316228   1.0
+     1000000   0.8
+     3162277   0.9
+    10000000   0.9
+    31622776   0.9
+   100000000   0.9
+```
 
 
 ### Summary

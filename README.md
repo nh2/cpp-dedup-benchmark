@@ -1,6 +1,6 @@
 # C++ vector deduplication by index sorting
 
-This repo benchmarks ways to remove duplicates from a C++ container, such as `std::vector`.
+This repo benchmarks ways to remove duplicates from a C++ container, such as `std::vector<T>`.
 
 It shows that sorting an index vector can be much faster than hash sets:
 
@@ -29,6 +29,18 @@ vector<T>  stable_uniquify(vector<T> & v);
 Note vector iterators are usually simply 64-bit indices.
 
 
+## Terminology
+
+* `T`: the types of elements inside the data structure to deduplicate (which can be e.g. `vector<T>`)
+* _projection function_ `proj()`:
+  * Often we need "sort-by" or "unique-by" operations, that consider only a part of `T`.
+  * For example, for a coloured 3D point `( pos=(float x, y, z), color=(uint8_t r, g, b) )`, we may want to deduplicate only based on the `pos`.
+  * This is called ["projection"](https://en.wikipedia.org/wiki/Projection_(mathematics)). In the above, `proj(T)` would be `T.pos`.
+  * In the benchmarks,
+    * `whole` means that the entire input type element is being compared (no projection).
+    * None-`whole` means that only the part of interest is being compared, passing a `proj(T)` as e.g. [`std::stable_sort`'s `Compare comp`](https://en.cppreference.com/w/cpp/algorithm/stable_sort) or [`std::unique`'s `BinaryPred p`](https://en.cppreference.com/w/cpp/algorithm/unique).
+
+
 ## Memory usage
 
 Measured:
@@ -42,6 +54,9 @@ stable_unique_iterators      12                = 1.5 size_t due to std::stable_s
 unstable_unique_iterators     8                = 1 size_t
 unordered_set                56
 flat_hash_set                32
+
+direct_vector_unstable_sort   0
+direct_vector_stable_sort     1.5*sizeof(T)    T = input element type
 ```
 
 
@@ -81,7 +96,12 @@ On `Intel Core i7-7500U`, single-run benchmark (we only care about rough numbers
 
 ![results graph](graph.svg)
 
-Performance vs non-stable algorithms:
+Analysis:
+
+*
+
+
+### Performance vs non-stable algorithms
 
 ```
            n   |- speedup factor over -|   notes
@@ -101,6 +121,39 @@ Performance vs non-stable algorithms:
 ```
 
 
+### Performance vs direct vector element sorting
+
+```
+                   |--------------------------- speedup factor over ----------------------|
+                   |---------------------------- direct_vector_* -------------------------|
+           n       stable_sort    stable_sort_whole    unstable_sort    unstable_sort_whole
+
+        1000       0.5            0.5                  0.5              0.3
+        3162       1.3            1.3                  0.6              0.8
+       10000       1.2            1.1                  0.7              0.7
+       31623       1.5            1.5                  0.7              1.2
+      100000       1.6            1.5                  0.7              0.8
+      316228       1.3            1.4                  0.5              0.6
+     1000000       1.5            1.5                  0.6              0.6
+     3162278       1.4            1.5                  0.6              0.7
+    10000000       1.9            1.5                  1.0              1.0
+    31622777       1.1            1.2                  0.5              0.6
+   100000000       1.4            1.3                  0.6              0.6
+```
+
+Analysis:
+
+* **Unstable direct sorts are 2x faster**.
+* Stable direct sorts are not worth it, compared to stable direct sorts of indices.
+
+I expect that as `sizeof(T)` while `sizeof(proj(T))` stays constant,  `direct_vector_unstable_sort` will lose its benefit over index-based sorting, because it needs to read and write more data at every step, O(n log(n)) times, while index-based sorting only needs to touch the whole `T` O(n) times.
+
+
 ### Summary
 
 * Vector index sorting beats hash maps, unless the number of distinct elements is < 1 M.
+* When `sizeof(T)` is small AND you don't need stable order, you can get ~2x faster (and saving memory), by using unstable inplace sort:
+  ```c++
+  std::sort(v.begin(), v.end(), posLess);
+  v.erase(unique(v.begin(), v.end(), posEqual), v.end());
+  ```

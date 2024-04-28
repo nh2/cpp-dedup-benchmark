@@ -36,12 +36,19 @@ benchmarkUniquify(size_t n)
   }
 
   double duration_stable_unique_iterators;
-  double duration_stable_unique_iterators_comparing_whole_point;
+  double duration_stable_unique_iterators_whole;
   double duration_unstable_unique_iterators;
+  double duration_direct_vector_stable_sort;
+  double duration_direct_vector_stable_sort_whole;
+  double duration_direct_vector_unstable_sort;
+  double duration_direct_vector_unstable_sort_whole;
   double duration_unordered_set;
 #ifdef HAVE_DEPENDENCY_PHMAP
   double duration_flat_hash_set;
 #endif
+
+  const auto posLess = [](const Point3D & a, const Point3D & b) { return get<0>(a) < get<0>(b); };
+  const auto posEqual = [](const Point3D & a, const Point3D & b) { return get<0>(a) == get<0>(b); };
 
   // stable_unique_iterators()
   {
@@ -49,8 +56,6 @@ benchmarkUniquify(size_t n)
     cout << "stable_unique_iterators..." << endl;
     const auto t0 = chrono::steady_clock::now();
     // Only compare point positions.
-    const auto posLess = [](const Point3D & a, const Point3D & b){ return get<0>(a) < get<0>(b); };
-    const auto posEqual = [](const Point3D & a, const Point3D & b){ return get<0>(a) == get<0>(b); };
     const size_t numUniques = iterator_sorting::stable_unique_iterators(v.begin(), v.end(), posLess, posEqual).size();
     const auto t1 = chrono::steady_clock::now();
     duration_stable_unique_iterators = chrono::duration<double>(t1 - t0).count();
@@ -60,27 +65,77 @@ benchmarkUniquify(size_t n)
   // stable_unique_iterators(), comparing whole `Point3D`
   {
     vector<Point3D> v = inputCloud; // copy
-    cout << "stable_unique_iterators_comparing_whole_point..." << endl;
+    cout << "stable_unique_iterators_whole..." << endl;
     const auto t0 = chrono::steady_clock::now();
     // Only compare point positions.
     const size_t numUniques = iterator_sorting::stable_unique_iterators(v.begin(), v.end()).size();
     const auto t1 = chrono::steady_clock::now();
-    duration_stable_unique_iterators_comparing_whole_point = chrono::duration<double>(t1 - t0).count();
-    cout << "stable_unique_iterators_comparing_whole_point done, got " << numUniques << " uniques" << endl;
+    duration_stable_unique_iterators_whole = chrono::duration<double>(t1 - t0).count();
+    cout << "stable_unique_iterators_whole done, got " << numUniques << " uniques" << endl;
   }
 
   // unstable_unique_iterators()
   {
-    vector<Point3D>  & v = inputCloud; // copy
+    vector<Point3D> v = inputCloud; // copy
     cout << "unstable_unique_iterators..." << endl;
     const auto t0 = chrono::steady_clock::now();
     // Only compare point positions.
-    const auto posLess = [](const Point3D & a, const Point3D & b){ return get<0>(a) < get<0>(b); };
-    const auto posEqual = [](const Point3D & a, const Point3D & b){ return get<0>(a) == get<0>(b); };
     const size_t numUniques = iterator_sorting::unstable_unique_iterators(v.begin(), v.end(), posLess, posEqual).size();
     const auto t1 = chrono::steady_clock::now();
     duration_unstable_unique_iterators = chrono::duration<double>(t1 - t0).count();
     cout << "unstable_unique_iterators done, got " << numUniques << " uniques" << endl;
+  }
+
+  // direct element stable sorting (no indices)
+  {
+    vector<Point3D> v = inputCloud; // copy
+    cout << "direct_vector_stable_sort..." << endl;
+    const auto t0 = chrono::steady_clock::now();
+    std::stable_sort(v.begin(), v.end(), posLess);
+    v.erase(unique(v.begin(), v.end(), posEqual), v.end());
+    const size_t numUniques = v.size();
+    const auto t1 = chrono::steady_clock::now();
+    duration_direct_vector_stable_sort = chrono::duration<double>(t1 - t0).count();
+    cout << "direct_vector_stable_sort done, got " << numUniques << " uniques" << endl;
+  }
+
+  // direct element stable sorting (no indices), whole points
+  {
+    vector<Point3D> v = inputCloud; // copy
+    cout << "direct_vector_stable_sort_whole..." << endl;
+    const auto t0 = chrono::steady_clock::now();
+    std::stable_sort(v.begin(), v.end());
+    v.erase(unique(v.begin(), v.end()), v.end());
+    const size_t numUniques = v.size();
+    const auto t1 = chrono::steady_clock::now();
+    duration_direct_vector_stable_sort_whole = chrono::duration<double>(t1 - t0).count();
+    cout << "direct_vector_stable_sort_whole done, got " << numUniques << " uniques" << endl;
+  }
+
+  // direct element unstable sorting (no indices)
+  {
+    vector<Point3D> v = inputCloud; // copy
+    cout << "direct_vector_unstable_sort..." << endl;
+    const auto t0 = chrono::steady_clock::now();
+    std::sort(v.begin(), v.end(), posLess);
+    v.erase(unique(v.begin(), v.end(), posEqual), v.end());
+    const size_t numUniques = v.size();
+    const auto t1 = chrono::steady_clock::now();
+    duration_direct_vector_unstable_sort = chrono::duration<double>(t1 - t0).count();
+    cout << "direct_vector_unstable_sort done, got " << numUniques << " uniques" << endl;
+  }
+
+  // direct element unstable sorting (no indices), whole points
+  {
+    vector<Point3D> v = inputCloud; // copy
+    cout << "direct_vector_unstable_sort_whole..." << endl;
+    const auto t0 = chrono::steady_clock::now();
+    std::sort(v.begin(), v.end());
+    v.erase(unique(v.begin(), v.end()), v.end());
+    const size_t numUniques = v.size();
+    const auto t1 = chrono::steady_clock::now();
+    duration_direct_vector_unstable_sort_whole = chrono::duration<double>(t1 - t0).count();
+    cout << "direct_vector_unstable_sort_whole done, got " << numUniques << " uniques" << endl;
   }
 
   // std::unordered_set
@@ -133,8 +188,12 @@ benchmarkUniquify(size_t n)
   cout << "Timing:" << endl;
   cout << fixed << setprecision(2);
   cout << "  stable_unique_iterators:                         " << setw(7) << duration_stable_unique_iterators << " s" << endl;
-  cout << "  stable_unique_iterators (comparing whole point): " << setw(7) << duration_stable_unique_iterators_comparing_whole_point << " s (" << (duration_stable_unique_iterators_comparing_whole_point / ref) << " x)" << endl;
+  cout << "  stable_unique_iterators_whole:                   " << setw(7) << duration_stable_unique_iterators_whole << " s (" << (duration_stable_unique_iterators_whole / ref) << " x)" << endl;
   cout << "  unstable_unique_iterators:                       " << setw(7) << duration_unstable_unique_iterators << " s (" << (duration_unstable_unique_iterators / ref) << " x)" << endl;
+  cout << "  direct_vector_stable_sort:                       " << setw(7) << duration_direct_vector_stable_sort << " s (" << (duration_direct_vector_stable_sort / ref) << " x)" << endl;
+  cout << "  direct_vector_stable_sort_whole:                 " << setw(7) << duration_direct_vector_stable_sort_whole << " s (" << (duration_direct_vector_stable_sort_whole / ref) << " x)" << endl;
+  cout << "  direct_vector_unstable_sort:                     " << setw(7) << duration_direct_vector_unstable_sort << " s (" << (duration_direct_vector_unstable_sort / ref) << " x)" << endl;
+  cout << "  direct_vector_unstable_sort_whole:               " << setw(7) << duration_direct_vector_unstable_sort_whole << " s (" << (duration_direct_vector_unstable_sort_whole / ref) << " x)" << endl;
   cout << "  unordered_set:                                   " << setw(7) << duration_unordered_set << " s (" << (duration_unordered_set / ref) << " x)" << endl;
 #ifdef HAVE_DEPENDENCY_PHMAP
   cout << "  flat_hash_set:                                   " << setw(7) << duration_flat_hash_set << " s (" << (duration_flat_hash_set / ref) << " x)" << endl;

@@ -62,6 +62,9 @@ On `Intel Core i7-7500U`, single-run benchmark (we only care about rough numbers
    100000000   4.8             2.7
 ```
 
+![results graph](graph.svg)
+
+
 ### Summary
 
 * Vector index sorting beats hash maps, unless the number of distinct elements is < 1 M.

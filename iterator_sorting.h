@@ -27,7 +27,7 @@
 
 namespace iterator_sorting {
 
-// Returns an array of iterators that would stable-sort the pointed-to values.
+// Returns an array of iterators that would sort the pointed-to values (unstable sort).
 //
 // Complexity:
 // Given `N` as `last - first`:
